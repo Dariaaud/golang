@@ -14,7 +14,13 @@ func sum(c []int) int {
 
 func main() {
 	//9 задача
-	arr := []int{}
-	fmt.Scan(arr)
+	var arr []int
+	var size int
+	var a int
+	fmt.Scan(&size)
+	for i := 0; i < size; i += 1 {
+		fmt.Scan(&a)
+		arr = append(arr, a)
+	}
 	fmt.Println(sum(arr))
 }
