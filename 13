@@ -1,0 +1,17 @@
+package main
+
+import (
+	"fmt"
+)
+
+func main() {
+	//13 задача
+	var a string
+	fmt.Scan(&a)
+	var ans int
+	for a != "" {
+		ans += 1
+		a = a[1:]
+	}
+	fmt.Println(ans)
+}
