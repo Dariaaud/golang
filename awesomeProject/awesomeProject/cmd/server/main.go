@@ -2,8 +2,6 @@ package main
 
 import (
 	"awesomeProject/accounts"
-	"fmt"
-	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -19,27 +17,14 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	e.GET("/account", accountsHandler.GetAccount)
+	//e.GET("/account", accountsHandler.GetAccount)
 	//e.POST("/account/create", accountsHandler.CreateAccount)
 
-	// Start server
-	command := os.Args[1]
-
-	switch command {
-	case "create":
-		e.POST("/account/create", accountsHandler.CreateAccount)
-	case "get":
-		e.POST("/account/get", accountsHandler.GetAccount)
-	case "delete":
-		e.POST("/account/delete", accountsHandler.DeleteAccount)
-	case "patch":
-		e.POST("/account/create", accountsHandler.PatchAccount)
-	case "change":
-		e.POST("/account/create", accountsHandler.ChangeAccount)
-	default:
-		fmt.Println("Invalid command")
-		os.Exit(1)
-	}
+	e.POST("/account/create", accountsHandler.CreateAccount)
+	e.GET("/account", accountsHandler.GetAccount)
+	e.DELETE("/account/delete", accountsHandler.DeleteAccount)
+	e.PATCH("/account/change_amount", accountsHandler.PatchAccount)
+	e.PATCH("/account/change_name", accountsHandler.ChangeAccount)
 
 	e.Logger.Fatal(e.Start(":1323"))
 }
