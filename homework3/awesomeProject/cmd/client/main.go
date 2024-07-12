@@ -1,47 +1,23 @@
 package main
 
 import (
-	"awesomeProject/accounts/dto"
 	"awesomeProject/cmd"
-	"bytes"
-	"encoding/json"
+	"awesomeProject/proto"
+	"time"
+
+	"context"
 	"flag"
 	"fmt"
-	"io"
-	"net/http"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-func main() {
-	portVal := flag.Int("port", 8080, "server port")
-	hostVal := flag.String("host", "0.0.0.0", "server host")
-	cmdVal := flag.String("cmd", "", "command to execute")
-	nameVal := flag.String("name", "", "name of account")
-	amountVal := flag.Int("amount", 0, "amount of account")
-
-	flag.Parse()
-
-	cmd := Command{
-		Port:   *portVal,
-		Host:   *hostVal,
-		Cmd:    *cmdVal,
-		Name:   *nameVal,
-		Amount: *amountVal,
-	}
-
-	if err := cmd.Do(); err != nil {
-		panic(err)
-	}
+type Client struct {
+	client_imp proto.AccountManagerClient
 }
 
-type Command struct {
-	Port   int
-	Host   string
-	Cmd    string
-	Name   string
-	Amount int
-}
-
-func (c *Command) Do() error {
+func (c *Client) Do(cmd cmd.Command) error {
 	switch cmd.Cmd {
 	case "create":
 		if err := cmd.create(); err != nil {
@@ -75,174 +51,79 @@ func (c *Command) Do() error {
 	}
 }
 
-func create(cmd Command) error {
-	request := dto.CreateAccountRequest{
-		Name:   cmd.Name,
-		Amount: cmd.Amount,
-	}
-
-	data, err := json.Marshal(request)
-	if err != nil {
-		return fmt.Errorf("json marshal failed: %w", err)
-	}
-
-	resp, err := http.Post(
-		fmt.Sprintf("http://%s:%d/account/create", cmd.Host, cmd.Port),
-		"application/json",
-		bytes.NewReader(data),
-	)
-	if err != nil {
-		return fmt.Errorf("http post failed: %w", err)
-	}
-
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-	if resp.StatusCode == http.StatusCreated {
-		return nil
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("read body failed: %w", err)
-	}
-
-	return fmt.Errorf("resp error %s", string(body))
+type Command struct {
+	Port   int
+	Host   string
+	Cmd    string
+	Name   string
+	Amount int
 }
 
-func get(cmd cmd.Command) error {
-	if len(cmd.Name) == 0 {
-		return fmt.Errorf("name is empty")
-	}
-
-	url := fmt.Sprintf("http://%s:%d/account/get?name=%s", cmd.Host, cmd.Port, cmd.Name)
-
-	resp, err := http.Get(url)
-	if err != nil {
-		return fmt.Errorf("http get failed: %w", err)
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode == http.StatusOK {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("read body failed: %w", err)
-		}
-		fmt.Println(string(body))
-		return nil
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("read body failed: %w", err)
-	}
-
-	return fmt.Errorf("resp error %s", string(body))
+func (c *Client) create(cmd cmd.Command) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := c.client_imp.CreateAccount(ctx, &proto.CreateAccountRequest{Name: cmd.Name, Amount: int32(cmd.Amount)})
+	return err
 }
 
-func change_amount(cmd cmd.Command) error {
-	if len(cmd.Name) == 0 {
-		return fmt.Errorf("name is empty")
-	}
-
-	request := dto.ChangeAccountRequest{
-		Name:   cmd.Name,
-		Amount: cmd.Amount,
-	}
-
-	data, err := json.Marshal(request)
-	if err != nil {
-		return fmt.Errorf("json marshal failed: %w", err)
-	}
-
-	url := fmt.Sprintf("http://%s:%d/account/change_amount", cmd.Host, cmd.Port)
-	resp, err := http.Post(url, "application/json", bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("http post failed: %w", err)
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode == http.StatusOK {
-		return nil
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("read body failed: %w", err)
-	}
-
-	return fmt.Errorf("resp error %s", string(body))
+func (c *Client) delete(cmd cmd.Command) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := c.client_imp.DeleteAccount(ctx, &proto.DeleteAccountRequest{Name: cmd.Name})
+	return err
 }
 
-func change_name(cmd cmd.Command) error {
-	if len(cmd.Name) == 0 {
-		return fmt.Errorf("name is empty")
-	}
-
-	request := dto.PatchAccountRequest{
-		Name:    cmd.Name,
-		NewName: cmd.Name,
-	}
-
-	data, err := json.Marshal(request)
-	if err != nil {
-		return fmt.Errorf("json marshal failed: %w", err)
-	}
-
-	url := fmt.Sprintf("http://%s:%d/account/change_name", cmd.Host, cmd.Port)
-	resp, err := http.Post(url, "application/json", bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("http post failed: %w", err)
-	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode == http.StatusOK {
-		return nil
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("read body failed: %w", err)
-	}
-
-	return fmt.Errorf("resp error %s", string(body))
+func (c *Client) get(cmd cmd.Command) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := c.client_imp.GetAccount(ctx, &proto.GetAccountRequest{Name: cmd.Name})
+	return err
 }
 
-func delete(cmd cmd.Command) error {
-	if len(cmd.Name) == 0 {
-		return fmt.Errorf("name is empty")
+func (c *Client) changeAmount(cmd cmd.Command) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := c.client_imp.ChangeAmountAccount(ctx, &proto.ChangeAmountAccountRequest{Name: cmd.Name, NewAmount: int32(cmd.Amount)})
+	return err
+}
+
+func (c *Client) changeName(cmd cmd.Command) error {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	_, err := c.client_imp.ChangeNameAccount(ctx, &proto.ChangeNameAccountRequest{PrevName: cmd.Name, NewName: cmd.NewName})
+	return err
+}
+
+func main() {
+	portVal := flag.Int("port", 8080, "server port")
+	hostVal := flag.String("host", "0.0.0.0", "server host")
+	cmdVal := flag.String("cmd", "", "command to execute")
+	nameVal := flag.String("name", "", "name of account")
+	amountVal := flag.Int("amount", 0, "amount of account")
+
+	flag.Parse()
+
+	cmd := Command{
+		Port:   *portVal,
+		Host:   *hostVal,
+		Cmd:    *cmdVal,
+		Name:   *nameVal,
+		Amount: *amountVal,
 	}
 
-	url := fmt.Sprintf("http://%s:%d/account/delete?name=%s", cmd.Host, cmd.Port, cmd.Name)
+	conn, err := grpc.NewClient("0.0.0.0:4567", grpc.WithTransportCredentials(insecure.NewCredentials()))
 
-	req, err := http.NewRequest(http.MethodDelete, url, nil)
 	if err != nil {
-		return fmt.Errorf("http request failed: %w", err)
+		panic(err)
 	}
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("http post failed: %w", err)
-	}
 	defer func() {
-		_ = resp.Body.Close()
+		_ = conn.Close()
 	}()
 
-	if resp.StatusCode == http.StatusOK {
-		return nil
-	}
+	cl := Client{proto.NewAccountManagerClient(conn)}
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("read body failed: %w", err)
+	if err := cl.Do(cmd); err != nil {
+		panic(err)
 	}
-
-	return fmt.Errorf("resp error %s", string(body))
 }
