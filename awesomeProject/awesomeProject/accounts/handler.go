@@ -124,7 +124,7 @@ func (h *Handler) PatchAccount(c echo.Context) error {
 
 // Меняет имя
 func (h *Handler) ChangeAccount(c echo.Context) error {
-	var request dto.PatchAccountRequest // {"name": "alice"}
+	var request dto.ChangeAccountRequest // {"name": "alice", "newName": "bob"}
 	if err := c.Bind(&request); err != nil {
 		c.Logger().Error(err)
 		return c.String(http.StatusBadRequest, "invalid request")
@@ -134,14 +134,22 @@ func (h *Handler) ChangeAccount(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "empty name")
 	}
 
+	if len(request.NewName) == 0 {
+		return c.String(http.StatusBadRequest, "empty new name")
+	}
+
 	h.guard.Lock()
 	defer h.guard.Unlock()
-
 	if _, ok := h.accounts[request.Name]; !ok {
 		return c.String(http.StatusNotFound, "account not found")
 	}
-
-	h.accounts[request.Name].Name = request.Name 
+	if _, ok := h.accounts[request.NewName]; ok {
+		return c.String(http.StatusForbidden, "account with new name already exists")
+	}
+	account := h.accounts[request.Name]
+	account.Name = request.NewName
+	delete(h.accounts, request.Name)
+	h.accounts[request.NewName] = account
 
 	return c.NoContent(http.StatusOK)
 }
