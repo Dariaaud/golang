@@ -74,63 +74,74 @@ func (h *Handler) GetAccount(c echo.Context) error {
 
 // Удаляет аккаунт
 func (h *Handler) DeleteAccount(c echo.Context) error {
-	name := c.QueryParams().Get("name")
+	func (h *Handler) DeleteAccount(c echo.Context) error {
+	var request dto.PatchAccountRequest // {"name": "alice"}
+	if err := c.Bind(&request); err != nil {
+		c.Logger().Error(err)
+		return c.String(http.StatusBadRequest, "invalid request")
+	}
+
+	if len(request.Name) == 0 {
+		return c.String(http.StatusBadRequest, "empty name")
+	}
 
 	h.guard.Lock()
 	defer h.guard.Unlock()
 
-	if _, ok := h.accounts[name]; !ok {
+	if _, ok := h.accounts[request.Name]; !ok {
 		return c.String(http.StatusNotFound, "account not found")
 	}
 
-	delete(h.accounts, name)
+	delete(h.accounts, request.Name)
 
-	return c.NoContent(http.StatusOK)
+	return c.NoContent(http.StatusNoContent)
 }
 
 // Меняет баланс
 func (h *Handler) PatchAccount(c echo.Context) error {
-	var request dto.PatchAccountRequest
+	var request dto.ChangeAccountRequest // {"name": "alice", "amount": 50}
 	if err := c.Bind(&request); err != nil {
 		c.Logger().Error(err)
 		return c.String(http.StatusBadRequest, "invalid request")
 	}
 
-	name := request.Name
+	if len(request.Name) == 0 {
+		return c.String(http.StatusBadRequest, "empty name")
+	}
 
 	h.guard.Lock()
 	defer h.guard.Unlock()
 
-	account, ok := h.accounts[name]
-	if !ok {
+	if _, ok := h.accounts[request.Name]; !ok {
 		return c.String(http.StatusNotFound, "account not found")
 	}
 
-	account.Name = name
+	h.accounts[request.Name].Amount = request.Amount
 
 	return c.NoContent(http.StatusOK)
+
 }
 
 // Меняет имя
 func (h *Handler) ChangeAccount(c echo.Context) error {
-	var request dto.ChangeAccountRequest
+	var request dto.PatchAccountRequest // {"name": "alice"}
 	if err := c.Bind(&request); err != nil {
 		c.Logger().Error(err)
 		return c.String(http.StatusBadRequest, "invalid request")
 	}
 
-	name := request.Name
-	amount := request.Amount
+	if len(request.Name) == 0 {
+		return c.String(http.StatusBadRequest, "empty name")
+	}
 
 	h.guard.Lock()
 	defer h.guard.Unlock()
 
-	account, ok := h.accounts[name]
-	if !ok {
+	if _, ok := h.accounts[request.Name]; !ok {
 		return c.String(http.StatusNotFound, "account not found")
 	}
 
-	account.Amount = amount
+	h.accounts[request.Name].Name = request.Name 
 
 	return c.NoContent(http.StatusOK)
 }
