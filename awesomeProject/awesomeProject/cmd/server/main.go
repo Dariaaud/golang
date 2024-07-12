@@ -19,7 +19,7 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	//e.GET("/account", accountsHandler.GetAccount)
+	e.GET("/account", accountsHandler.GetAccount)
 	//e.POST("/account/create", accountsHandler.CreateAccount)
 
 	// Start server
