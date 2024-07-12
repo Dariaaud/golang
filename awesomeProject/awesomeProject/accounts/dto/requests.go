@@ -7,6 +7,7 @@ type CreateAccountRequest struct {
 
 type PatchAccountRequest struct {
 	Name string `json:"name"`
+	NewName  string `json:"new_name"`
 }
 
 type ChangeAccountRequest struct {
