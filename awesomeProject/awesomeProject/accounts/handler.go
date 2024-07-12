@@ -74,7 +74,6 @@ func (h *Handler) GetAccount(c echo.Context) error {
 
 // Удаляет аккаунт
 func (h *Handler) DeleteAccount(c echo.Context) error {
-	func (h *Handler) DeleteAccount(c echo.Context) error {
 	var request dto.PatchAccountRequest // {"name": "alice"}
 	if err := c.Bind(&request); err != nil {
 		c.Logger().Error(err)
