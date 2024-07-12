@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+option go_package = "awesomeProject/proto";
+
+package proto;
+
+service AccountManager {
+  rpc CreateAccount (CreateAccountRequest) returns (CreateAccountReply) {}
+  rpc GetAccount (GetAccountRequest) returns (GetAccountReply) {}
+  rpc ChangeNameAccount (ChangeNameAccountRequest) returns (ChangeNameAccountReply) {}
+  rpc ChangeAmountAccount (ChangeAmountAccountRequest) returns (ChangeAmountAccountReply) {}
+  rpc DeleteAccount (DeleteAccountRequest) returns (DeleteAccountReply) {}
+}
+
+message CreateAccountRequest {
+  string Name = 1;
+  int32 Amount = 2;
+}
+
+message CreateAccountReply {}
+
+message GetAccountRequest {
+  string Name = 1;
+}
+
+message GetAccountReply {
+  string Name = 1;
+  int32 Amount = 2;
+}
+
+message ChangeNameAccountRequest {
+  string PrevName = 1;
+  string NewName = 2;
+}
+
+message ChangeNameAccountReply {}
+
+message ChangeAmountAccountRequest {
+  string Name = 1;
+  int32 NewAmount = 2;
+}
+
+message ChangeAmountAccountReply {}
+
+message DeleteAccountRequest {
+  string Name = 1;
+}
+message DeleteAccountReply {}
