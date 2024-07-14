@@ -77,6 +77,9 @@ func (c *Client) get(cmd cmd.Command) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	_, err := c.client_imp.GetAccount(ctx, &proto.GetAccountRequest{Name: cmd.Name})
+	if err == nil {
+		fmt.Printf("account name: %s amount: %d", resp.Name, resp.Amount)
+	}
 	return err
 }
 
